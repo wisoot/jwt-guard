@@ -42,4 +42,12 @@ interface TokenManager
      */
     public function remove($userId, $token);
 
+    /**
+     * remove all token for given user ID
+     *
+     * @param $userId
+     * @return int
+     */
+    public function removeAll($userId);
+
 }

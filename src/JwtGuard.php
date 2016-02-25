@@ -295,6 +295,41 @@ class JwtGuard implements Guard
     }
 
     /**
+     * log this user out from every token
+     *
+     * @return void
+     */
+    public function logoutAll()
+    {
+        $token = $this->parseAuthenticateString(\Request::header('Authorization'));
+
+        if (empty($token)) {
+            return;
+        }
+
+        try {
+            $payload = \JWTAuth::setToken($token)->getPayload();
+            $user = $this->provider->retrieveById($payload['sub']);
+
+            if (!empty($user)) {
+                $this->tokenManager->removeAll($user->getAuthIdentifier());
+            }
+
+        } catch (TokenMismatchException $e) { }
+
+        if (isset($this->events)) {
+            $this->events->fire(new Logout($this->user));
+        }
+
+        // Once we have fired the logout event we will clear the users out of memory
+        // so they are no longer available as the user is no longer considered as
+        // being signed into this application and should not be available here.
+        $this->user = null;
+        $this->token = null;
+        $this->loggedOut = true;
+    }
+
+    /**
      * setToken method
      *
      * @param string $token

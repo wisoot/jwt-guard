@@ -82,4 +82,17 @@ class TokenManager implements Contract\TokenManager
 
         return true;
     }
+
+    /**
+     * remove all token for given user ID
+     *
+     * @param $userId
+     * @return int
+     */
+    public function removeAll($userId)
+    {
+        return \DB::table($this->tokenTable)
+            ->where($this->userForeignKey, $userId)
+            ->delete();
+    }
 }
