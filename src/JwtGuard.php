@@ -86,6 +86,8 @@ class JwtGuard implements Guard
                 && $this->tokenManager->check($user->getAuthIdentifier(), $payload['jti'])) {
 
                 $this->user = $user;
+            } else {
+                $this->user = null;
             }
 
         } catch (TokenInvalidException $e) {
