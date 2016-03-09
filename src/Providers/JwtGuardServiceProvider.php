@@ -2,7 +2,9 @@
 
 namespace WWON\JwtGuard\Providers;
 
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\ServiceProvider;
+use Tymon\JWTAuth\Providers\JWTAuthServiceProvider;
 use WWON\JwtGuard\Contract\TokenManager as TokenManagerContract;
 use WWON\JwtGuard\JwtGuard;
 use WWON\JwtGuard\TokenManager;
@@ -21,12 +23,10 @@ class JwtGuardServiceProvider extends ServiceProvider
      */
     public function boot()
     {
-        \Auth::extend('jwt', function($app, $name, array $config) {
-            // Return an instance of Illuminate\Contracts\Auth\Guard...
-
+        Auth::extend('jwt', function($app, $name, array $config) {
             return new JwtGuard(
-                \Auth::createUserProvider($config['provider']),
-                $this->app->make(TokenManagerContract::class),
+                $app['auth']->createUserProvider($config['provider']),
+                $app[TokenManagerContract::class],
                 $app['request']
             );
         });
@@ -43,15 +43,41 @@ class JwtGuardServiceProvider extends ServiceProvider
     /**
      * Register any application services.
      *
-     * This service provider is a great spot to register your various container
-     * bindings with the application. As you can see, we are registering our
-     * "Registrar" implementation here. You can add your own bindings too!
-     *
      * @return void
      */
     public function register()
     {
+        $this->registerTymonJwtAuth();
+
         $this->app->bind(TokenManagerContract::class, TokenManager::class);
+
+        $this->rebindRequests();
+    }
+
+    /**
+     * Register the Tymon JWT Auth service provider.
+     *
+     * @return    void
+     */
+    private function registerTymonJwtAuth()
+    {
+        $provider = new JWTAuthServiceProvider($this->app);
+
+        $provider->register();
+    }
+
+    /**
+     * Rebind app requests to set a custom user resolver.
+     *
+     * @return    void
+     */
+    protected function rebindRequests()
+    {
+        $this->app->rebinding('request', function ($app, $request) {
+            $request->setUserResolver(function ($guard = null) {
+                return auth()->guard($guard)->user();
+            });
+        });
     }
 
 }
