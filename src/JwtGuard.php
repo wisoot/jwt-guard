@@ -11,8 +11,8 @@ use Illuminate\Contracts\Auth\Guard;
 use Illuminate\Contracts\Auth\UserProvider;
 use Illuminate\Http\Request;
 use Illuminate\Session\TokenMismatchException;
-use Tymon\JWTAuth\Exceptions\TokenExpiredException;
-use Tymon\JWTAuth\Exceptions\TokenInvalidException;
+use Tymon\JWTAuth\Exceptions\JWTException;
+use Tymon\JWTAuth\Payload;
 
 class JwtGuard implements Guard
 {
@@ -33,6 +33,11 @@ class JwtGuard implements Guard
      * @var Request
      */
     protected $request;
+
+    /**
+     * @var \Illuminate\Contracts\Auth\Authenticatable|null
+     */
+    protected $user;
 
     /**
      * Indicates if the logout method has been called.
@@ -68,39 +73,72 @@ class JwtGuard implements Guard
         // If we've already retrieved the user for the current request we can just
         // return it back immediately. We do not want to fetch the user data on
         // every call to this method because that would be tremendously slow.
-        if (! is_null($this->user)) {
+        if ($this->user) {
             return $this->user;
         }
 
-        $token = $this->parseAuthenticateString($this->request->header('Authorization'));
-
-        if (empty($token)) {
+        if (! $token = $this->request->bearerToken()) {
             return $this->user = null;
         }
 
         try {
-            $payload = \JWTAuth::setToken($token)->getPayload();
-            $user = $this->provider->retrieveById($payload['sub']);
+            $payload = $this->getPayloadOfToken($token);
+            $user = $this->getUserByPayload($payload);
 
-            if (!empty($this->user)
-                && $this->tokenManager->check($user->getAuthIdentifier(), $payload['jti'])) {
+            $this->user = $this->userHasToken($user, $payload) ? $user : null;
 
-                $this->user = $user;
-            } else {
-                $this->user = null;
-            }
-
-        } catch (TokenInvalidException $e) {
-
-            $this->user = null;
-
-        } catch (TokenExpiredException $e) {
-
+        } catch (JWTException $e) {
             $this->user = null;
         }
 
         return $this->user;
+    }
 
+    /**
+     * Retrieve the payload of the given token.
+     *
+     * @param    string    $token
+     * @return    array
+     */
+    protected function getPayloadOfToken($token)
+    {
+        return app('tymon.jwt.auth')->setToken($token)->getPayload();
+    }
+
+    /**
+     * Retrieve the user by the given payload.
+     *
+     * @param    Tymon\JWTAuth\Payload    $payload
+     * @return    Illuminate\Contracts\Auth\Authenticatable
+     */
+    protected function getUserByPayload(Payload $payload)
+    {
+        return $this->provider->retrieveById($payload['sub']);
+    }
+
+    /**
+     * Retrieve the user by the given token.
+     *
+     * @param    string    $token
+     * @return    Illuminate\Contracts\Auth\Authenticatable
+     */
+    public function getUserByToken($token)
+    {
+        $payload = $this->getPayloadOfToken($token);
+
+        return $this->getUserByPayload($payload);
+    }
+
+    /**
+     * Determine whether the user has a token attached.
+     *
+     * @param \Illuminate\Contracts\Auth\Authenticatable   $user
+     * @param  Tymon\JWTAuth\Payload  $payload
+     * @return    boolean
+     */
+    protected function userHasToken($user, Payload $payload)
+    {
+        return $this->tokenManager->check($user->getAuthIdentifier(), $payload['jti']);
     }
 
     /**
@@ -112,23 +150,6 @@ class JwtGuard implements Guard
     public function validate(array $credentials = [])
     {
         return $this->attempt($credentials, false);
-    }
-
-    /**
-     * Parse token from the authorization header.
-     *
-     * @param string $authenticateString
-     * @return string|null
-     */
-    protected function parseAuthenticateString($authenticateString)
-    {
-        $method = 'bearer';
-
-        if (!starts_with(strtolower($authenticateString), $method . ' ')) {
-            return null;
-        }
-
-        return trim(str_ireplace($method, '', $authenticateString));
     }
 
     /**
@@ -227,8 +248,8 @@ class JwtGuard implements Guard
      */
     protected function generateTokenForUserId($userId)
     {
-        $payload = \JWTFactory::make(['sub' => $userId]);
-        $token = \JWTAuth::encode($payload);
+        $payload = app('tymon.jwt.payload.factory')->make(['sub' => $userId]);
+        $token = app('tymon.jwt.auth')->encode($payload);
         $this->tokenManager->add($userId, $payload['jti']);
 
         return $token->get();
@@ -268,17 +289,14 @@ class JwtGuard implements Guard
      */
     public function logout()
     {
-        $token = $this->parseAuthenticateString(\Request::header('Authorization'));
-
-        if (empty($token)) {
+        if (! $token = $this->request->bearerToken()) {
             return;
         }
 
         try {
-            $payload = \JWTAuth::setToken($token)->getPayload();
-            $user = $this->provider->retrieveById($payload['sub']);
+            $payload = $this->getPayloadOfToken($token);
 
-            if (!empty($user)) {
+            if ($user = $this->getUserByPayload($token)) {
                 $this->tokenManager->remove($user->getAuthIdentifier(), $payload['jti']);
             }
 
@@ -303,17 +321,12 @@ class JwtGuard implements Guard
      */
     public function logoutAll()
     {
-        $token = $this->parseAuthenticateString(\Request::header('Authorization'));
-
-        if (empty($token)) {
+        if (! $token = $this->request->bearerToken()) {
             return;
         }
 
         try {
-            $payload = \JWTAuth::setToken($token)->getPayload();
-            $user = $this->provider->retrieveById($payload['sub']);
-
-            if (!empty($user)) {
+            if ($user = $this->getUserByToken($token)) {
                 $this->tokenManager->removeAll($user->getAuthIdentifier());
             }
 
