@@ -72,7 +72,7 @@ class JwtGuard implements Guard
             return $this->user;
         }
 
-        if (! $token = $this->request->bearerToken()) {
+        if (!$token = $this->getBearerToken()) {
             return $this->user = null;
         }
 
@@ -284,7 +284,7 @@ class JwtGuard implements Guard
      */
     public function logout()
     {
-        if (! $token = $this->request->bearerToken()) {
+        if (!$token = $this->getBearerToken()) {
             return;
         }
 
@@ -316,7 +316,7 @@ class JwtGuard implements Guard
      */
     public function logoutAll()
     {
-        if (! $token = $this->request->bearerToken()) {
+        if (!$token = $this->getBearerToken()) {
             return;
         }
 
@@ -357,6 +357,20 @@ class JwtGuard implements Guard
     public function getToken()
     {
         return $this->token;
+    }
+
+    /**
+     * getBearerToken method
+     *
+     * @return string|null
+     */
+    protected function getBearerToken()
+    {
+        $header = $this->request->header('Authorization', '');
+
+        if (Str::startsWith(strtolower($header), 'bearer ')) {
+            return Str::substr($header, 7);
+        }
     }
 
 }
