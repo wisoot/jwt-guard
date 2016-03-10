@@ -368,8 +368,8 @@ class JwtGuard implements Guard
     {
         $header = $this->request->header('Authorization', '');
 
-        if (Str::startsWith(strtolower($header), 'bearer ')) {
-            return Str::substr($header, 7);
+        if (starts_with(strtolower($header), 'bearer ')) {
+            return mb_substr($header, 7, null, 'UTF-8');
         }
     }
 
