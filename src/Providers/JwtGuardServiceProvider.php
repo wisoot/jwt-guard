@@ -31,13 +31,27 @@ class JwtGuardServiceProvider extends ServiceProvider
             );
         });
 
-        $this->publishes([
-            __DIR__ . '/../config/jwt_guard.php' => config_path('jwt_guard.php')
-        ], 'config');
+        $this->publishConfig();
 
         $this->publishes([
             __DIR__ . '/../database/migrations/' => database_path('migrations')
         ], 'migrations');
+    }
+
+    /**
+     * Publish the configuration file.
+     *
+     * @return    void
+     */
+    private function publishConfig()
+    {
+        $configFile = __DIR__ . '/../config/jwt_guard.php';
+
+        $this->publishes([
+            $configFile => config_path('jwt_guard.php')
+        ], 'config');
+
+        $this->mergeConfigFrom($configFile, 'jwt_guard');
     }
 
     /**
