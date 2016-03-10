@@ -35,11 +35,6 @@ class JwtGuard implements Guard
     protected $request;
 
     /**
-     * @var \Illuminate\Contracts\Auth\Authenticatable|null
-     */
-    protected $user;
-
-    /**
      * Indicates if the logout method has been called.
      *
      * @var bool
