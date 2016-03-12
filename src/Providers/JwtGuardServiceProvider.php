@@ -3,6 +3,7 @@
 namespace WWON\JwtGuard\Providers;
 
 use Illuminate\Support\Facades\Auth;
+use Tymon\JWTAuth\Providers\JWTAuthServiceProvider;
 use WWON\JwtGuard\Contract\TokenManager as TokenManagerContract;
 use WWON\JwtGuard\JwtGuard;
 
