@@ -21,6 +21,8 @@ class JwtGuardServiceProvider extends JWTAuthServiceProvider
      */
     public function boot()
     {
+        parent::boot();
+
         Auth::extend('jwt', function($app, $name, array $config) {
             return new JwtGuard(
                 $app['auth']->createUserProvider($config['provider']),
@@ -59,6 +61,8 @@ class JwtGuardServiceProvider extends JWTAuthServiceProvider
      */
     public function register()
     {
+        parent::register();
+
         $this->app->rebinding('request', function ($app, $request) {
             $request->setUserResolver(function ($guard = null) {
                 return auth()->guard($guard)->user();
