@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\Auth;
 use Tymon\JWTAuth\Providers\JWTAuthServiceProvider;
 use WWON\JwtGuard\Contract\TokenManager as TokenManagerContract;
 use WWON\JwtGuard\JwtGuard;
+use WWON\JwtGuard\TokenManager;
 
 class JwtGuardServiceProvider extends JWTAuthServiceProvider
 {
@@ -62,6 +63,8 @@ class JwtGuardServiceProvider extends JWTAuthServiceProvider
     public function register()
     {
         parent::register();
+
+        $this->app->bind(TokenManagerContract::class, TokenManager::class);
 
         $this->app->rebinding('request', function ($app, $request) {
             $request->setUserResolver(function ($guard = null) {
