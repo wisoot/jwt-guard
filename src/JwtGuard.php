@@ -291,7 +291,7 @@ class JwtGuard implements Guard
         try {
             $payload = $this->getPayloadOfToken($token);
 
-            if ($user = $this->getUserByPayload($token)) {
+            if ($user = $this->getUserByPayload($payload)) {
                 $this->tokenManager->remove($user->getAuthIdentifier(), $payload['jti']);
             }
 
@@ -321,7 +321,9 @@ class JwtGuard implements Guard
         }
 
         try {
-            if ($user = $this->getUserByToken($token)) {
+            $payload = $this->getPayloadOfToken($token);
+
+            if ($user = $this->getUserByPayload($payload)) {
                 $this->tokenManager->removeAll($user->getAuthIdentifier());
             }
 
