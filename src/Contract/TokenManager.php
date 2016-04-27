@@ -2,6 +2,8 @@
 
 namespace WWON\JwtGuard\Contract;
 
+use WWON\JwtGuard\Claim;
+
 /**
  * Interface TokenManager
  *
@@ -16,38 +18,35 @@ interface TokenManager
 {
 
     /**
-     * add token to the given user ID
+     * add claim to the white list
      *
-     * @param mixed $userId
-     * @param string $token
+     * @param Claim $claim
      * @return bool
      */
-    public function add($userId, $token);
+    public function add(Claim $claim);
 
     /**
-     * check that user has this token attached to it
+     * check that claim is in the white list
      *
-     * @param mixed $userId
-     * @param string $token
+     * @param Claim $claim
      * @return bool
      */
-    public function check($userId, $token);
+    public function check(Claim $claim);
 
     /**
-     * remove the given token for the given user ID
+     * remove claim from the white list
      *
-     * @param mixed $userId
-     * @param string $token
+     * @param Claim $claim
      * @return bool
      */
-    public function remove($userId, $token);
+    public function remove(Claim $claim);
 
     /**
-     * remove all token for given user ID
+     * remove all claims associate to the subject from the white list
      *
-     * @param $userId
+     * @param Claim $claim
      * @return int
      */
-    public function removeAll($userId);
+    public function removeAll(Claim $claim);
 
 }

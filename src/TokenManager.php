@@ -3,6 +3,7 @@
 namespace WWON\JwtGuard;
 
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Config;
 
 class TokenManager implements Contract\TokenManager
 {
@@ -22,77 +23,75 @@ class TokenManager implements Contract\TokenManager
      */
     public function __construct()
     {
-        $this->tokenTable = \Config::get('jwt_guard.token_table');
-        $this->userForeignKey = \Config::get('jwt_guard.user_foreign_key');
+        $this->tokenTable = Config::get('jwt_guard.token_table');
+        $this->userForeignKey = Config::get('jwt_guard.user_foreign_key');
     }
 
     /**
-     * add token to the given user ID
+     * add claim to the white list
      *
-     * @param mixed $userId
-     * @param string $token
+     * @param Claim $claim
      * @return bool
      */
-    public function add($userId, $token)
+    public function add(Claim $claim)
     {
-        if ($this->check($userId, $token)) {
+        if ($this->check($claim->sub, $claim->jti)) {
             return;
         }
 
         \DB::table($this->tokenTable)->insert([
-            $this->userForeignKey => $userId,
-            'token' => $token,
+            $this->userForeignKey => $claim->sub,
+            'token' => $claim->jti,
             'created_at' => Carbon::now()->toDateTimeString(),
             'updated_at' => Carbon::now()->toDateTimeString()
         ]);
     }
 
     /**
-     * check that user has this token attached to it
+     * check that claim is in the white list
      *
-     * @param mixed $userId
-     * @param string $token
+     * @param Claim $claim
      * @return bool
      */
-    public function check($userId, $token)
+    public function check(Claim $claim)
     {
         $token = \DB::table($this->tokenTable)
-            ->where($this->userForeignKey, $userId)
-            ->where('token', $token)->first();
+            ->where($this->userForeignKey, $claim->sub)
+            ->where('token', $claim->jti)->first();
 
         return !empty($token);
     }
 
     /**
-     * remove the given token for the given user ID
+     * remove claim from the white list
      *
-     * @param mixed $userId
-     * @param string $token
+     * @param Claim $claim
      * @return bool
      */
-    public function remove($userId, $token)
+    public function remove(Claim $claim)
     {
-        if (!$this->check($userId, $token)) {
+        if (!$this->check($claim->sub, $claim->jti)) {
             return false;
         }
 
         \DB::table($this->tokenTable)
-            ->where($this->userForeignKey, $userId)
-            ->where('token', $token)->delete();
+            ->where($this->userForeignKey, $claim->sub)
+            ->where('token', $claim->jti)->delete();
 
         return true;
     }
 
     /**
-     * remove all token for given user ID
+     * remove all claims associate to the subject from the white list
      *
-     * @param $userId
+     * @param Claim $claim
      * @return int
      */
-    public function removeAll($userId)
+    public function removeAll(Claim $claim)
     {
         return \DB::table($this->tokenTable)
-            ->where($this->userForeignKey, $userId)
+            ->where($this->userForeignKey, $claim->sub)
             ->delete();
     }
+
 }

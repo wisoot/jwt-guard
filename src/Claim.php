@@ -2,6 +2,9 @@
 
 namespace WWON\JwtGuard;
 
+use Carbon\Carbon;
+use Illuminate\Support\Facades\Config;
+
 class Claim
 {
 
@@ -43,6 +46,22 @@ class Claim
             if (property_exists($this, $attribute)) {
                 $this->{$attribute} = $value;
             }
+        }
+
+        if (empty($this->iss)) {
+            $this->iss = Config::get('app.url');
+        }
+
+        if (empty($this->iat)) {
+            $this->iat = Carbon::now()->timestamp;
+        }
+
+        if (empty($this->iat)) {
+            $this->exp = $this->iat + (Config::get('jwt.ttl') * 60); // turns minute into second
+        }
+
+        if (empty($this->jti)) {
+            $this->jti = md5("{$this->sub}.{$this->iat}." . rand(1000, 1999));
         }
     }
 
