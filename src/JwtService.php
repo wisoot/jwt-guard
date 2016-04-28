@@ -2,10 +2,14 @@
 
 namespace WWON\JwtGuard;
 
+use Firebase\JWT\ExpiredException;
 use Firebase\JWT\JWT;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Support\Facades\Config;
 use WWON\JwtGuard\Contract\TokenManager;
+use WWON\JwtGuard\Exceptions\InaccessibleException;
+use WWON\JwtGuard\Exceptions\MalformedException;
+use WWON\JwtGuard\Exceptions\TokenExpiredException;
 
 class JwtService
 {
@@ -29,19 +33,26 @@ class JwtService
     {
         $this->key = Config::get('jwt.secret');
         $this->tokenManager = $tokenManager;
+
+        JWT::$leeway = Config::get('jwt.leeway');
     }
 
     /**
      * getTokenForUser method
      *
      * @param Authenticatable $user
-     * @return null|string
+     * @param bool $refreshable
+     * @return string
      */
-    public function getTokenForUser(Authenticatable $user)
+    public function getTokenForUser(Authenticatable $user, $refreshable = false)
     {
         $claim = new Claim([
             'sub' => $user->getAuthIdentifier()
         ]);
+
+        if ($refreshable) {
+            $claim->exp = Config::get('jwt.refresh_ttl') * 60;
+        }
 
         return $this->getTokenForClaim($claim);
     }
@@ -50,32 +61,34 @@ class JwtService
      * getUserIdFromToken method
      *
      * @param $token
-     * @return mixed|null
+     * @return mixed
+     * @throws InaccessibleException
+     * @throws MalformedException
+     * @throws TokenExpiredException
      */
     public function getUserIdFromToken($token)
     {
         $claim = $this->getClaimFromToken($token);
 
-        if (!empty($claim) && $this->tokenManager->check($claim)) {
+        if (!$this->tokenManager->check($claim)) {
             return $claim->sub;
         }
 
-        return null;
+        return $claim->sub;
     }
 
     /**
      * refreshToken method
      *
      * @param $token
-     * @return null|string
+     * @return string
+     * @throws InaccessibleException
+     * @throws MalformedException
+     * @throws TokenExpiredException
      */
     public function refreshToken($token)
     {
         $claim = $this->getClaimFromToken($token);
-
-        if (empty($claim)) {
-            return null;
-        }
 
         $this->tokenManager->remove($claim);
 
@@ -90,7 +103,7 @@ class JwtService
      * getTokenForUser method
      *
      * @param Claim $claim
-     * @return null|string
+     * @return string
      */
     protected function getTokenForClaim(Claim $claim)
     {
@@ -104,18 +117,21 @@ class JwtService
      * getClaimFromToken method
      *
      * @param $token
-     * @return null|Claim
+     * @return Claim
+     * @throws InaccessibleException
+     * @throws MalformedException
+     * @throws TokenExpiredException
      */
     protected function getClaimFromToken($token)
     {
         try {
             $payload = JWT::decode($token, $this->key);
 
-            return new Claim((array) $payload);
+        } catch (ExpiredException $e) {
+            throw new TokenExpiredException($e->getMessage(), $e->getCode(), $e);
+        }
 
-        } catch (\Exception $e) {}
-
-        return null;
+        return new Claim((array) $payload);
     }
 
 }
