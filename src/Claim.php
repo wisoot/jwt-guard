@@ -40,6 +40,13 @@ class Claim
     public $exp;
 
     /**
+     * not before
+     *
+     * @var int
+     */
+    public $nbf;
+
+    /**
      * not after
      *
      * @var int
@@ -120,12 +127,12 @@ class Claim
             throw new MalformedException;
         }
 
-        if ($this->nat > $now) {
-            throw new InaccessibleException;
+        if ($this->exp < $now) {
+            throw new TokenExpiredException;
         }
 
-        if ($this->exp > $now) {
-            throw new TokenExpiredException;
+        if ($this->nat < $now) {
+            throw new InaccessibleException;
         }
     }
 
@@ -154,7 +161,11 @@ class Claim
             $data['exp'] = $this->exp;
         }
 
-        if (!empty($this->exp)) {
+        if (!empty($this->nbf)) {
+            $data['nbf'] = $this->nbf;
+        }
+
+        if (!empty($this->nat)) {
             $data['nat'] = $this->nat;
         }
 
