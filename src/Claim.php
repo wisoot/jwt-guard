@@ -68,6 +68,20 @@ class Claim
     public $leeway;
 
     /**
+     * refreshable - whether the token can be refreshed
+     *
+     * @var bool
+     */
+    public $refresh = false;
+
+    /**
+     * timestamp when this object is instantiate
+     *
+     * @var int
+     */
+    protected $now;
+
+    /**
      * Claim constructor
      *
      * @param array $data
@@ -94,7 +108,8 @@ class Claim
         }
 
         if (empty($this->exp)) {
-            $this->exp = $this->iat + (Config::get('jwt.ttl') * 60); // turns minute into second
+            $ttl = $this->refresh ? Config::get('jwt.refresh_ttl') : Config::get('jwt.ttl');
+            $this->exp = $this->iat + ($ttl * 60); // turns minute into second
         }
 
         if (empty($this->nat)) {
@@ -109,6 +124,8 @@ class Claim
             $this->leeway = Config::get('jwt.leeway');
         }
 
+        $this->now = Carbon::now()->timestamp;
+
         $this->validate();
     }
 
@@ -121,17 +138,27 @@ class Claim
      */
     protected function validate()
     {
-        $now = Carbon::now()->timestamp + $this->leeway;
+        $compareTime = $this->now + $this->leeway;
 
         if ($this->iat > $this->exp || $this->iat > $this->nat) {
             throw new MalformedException;
         }
 
-        if ($this->exp < $now) {
+        if ($this->exp < $compareTime) {
             throw new TokenExpiredException;
         }
+    }
 
-        if ($this->nat < $now) {
+    /**
+     * validateAccessible method
+     *
+     * @throws InaccessibleException
+     */
+    public function validateAccessible()
+    {
+        $compareTime = $this->now + $this->leeway;
+
+        if ($this->nat < $compareTime) {
             throw new InaccessibleException;
         }
     }
@@ -171,6 +198,10 @@ class Claim
 
         if (!empty($this->jti)) {
             $data['jti'] = $this->jti;
+        }
+
+        if ($this->refresh) {
+            $data['refresh'] = true;
         }
 
         return $data;

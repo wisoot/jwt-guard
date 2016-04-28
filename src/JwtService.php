@@ -11,6 +11,7 @@ use WWON\JwtGuard\Exceptions\InaccessibleException;
 use WWON\JwtGuard\Exceptions\InvalidTokenException;
 use WWON\JwtGuard\Exceptions\MalformedException;
 use WWON\JwtGuard\Exceptions\TokenExpiredException;
+use WWON\JwtGuard\Exceptions\UnRefreshableException;
 
 class JwtService
 {
@@ -48,12 +49,9 @@ class JwtService
     public function getTokenForUser(Authenticatable $user, $refreshable = false)
     {
         $claim = new Claim([
-            'sub' => $user->getAuthIdentifier()
+            'sub' => $user->getAuthIdentifier(),
+            'refresh' => $refreshable
         ]);
-
-        if ($refreshable) {
-            $claim->exp = Config::get('jwt.refresh_ttl') * 60;
-        }
 
         return $this->getTokenForClaim($claim);
     }
@@ -72,6 +70,8 @@ class JwtService
     {
         $claim = $this->getClaimFromToken($token);
 
+        $claim->validateAccessible();
+
         if (!$this->tokenManager->check($claim)) {
             throw new InvalidTokenException;
         }
@@ -84,13 +84,17 @@ class JwtService
      *
      * @param $token
      * @return string
-     * @throws InaccessibleException
      * @throws MalformedException
      * @throws TokenExpiredException
+     * @throws UnRefreshableException
      */
     public function refreshToken($token)
     {
         $claim = $this->getClaimFromToken($token);
+        
+        if (empty($claim->refresh)) {
+            throw new UnRefreshableException;
+        }
 
         $this->tokenManager->remove($claim);
 
@@ -120,7 +124,6 @@ class JwtService
      *
      * @param $token
      * @return Claim
-     * @throws InaccessibleException
      * @throws MalformedException
      * @throws TokenExpiredException
      */
