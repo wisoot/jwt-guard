@@ -165,6 +165,45 @@ class JwtServiceTest extends PHPUnit_Framework_TestCase
     }
 
     /**
+     * testInvalidateToken method
+     */
+    public function testInvalidateToken()
+    {
+        $now = Carbon::now()->timestamp;
+
+        $token = $this->getToken();
+
+        $this->tokenManager->shouldReceive('check')
+            ->once()
+            ->with(Mockery::on(function($claim) {
+                return $claim->sub == 5
+                    && $claim->iss == 'http://www.test.com';
+            }))
+            ->andReturn(true);
+
+        $this->tokenManager->shouldReceive('remove')
+            ->once()
+            ->with(Mockery::on(function($claim) {
+                return $claim->sub == 5
+                    && $claim->iss == 'http://www.test.com';
+            }));
+
+        $this->jwtService->invalidateToken($token);
+    }
+
+    /**
+     * testWipeUserTokens method
+     */
+    public function testWipeUserTokens()
+    {
+        $this->tokenManager->shouldReceive('removeAll')
+            ->once()
+            ->with(5);
+
+        $this->jwtService->wipeUserTokens(new User());
+    }
+
+    /**
      * getToken method
      *
      * @param bool $refreshable

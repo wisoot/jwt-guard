@@ -59,7 +59,7 @@ class JwtService
     /**
      * getUserIdFromToken method
      *
-     * @param $token
+     * @param string $token
      * @return mixed
      * @throws InaccessibleException
      * @throws MalformedException
@@ -82,7 +82,7 @@ class JwtService
     /**
      * refreshToken method
      *
-     * @param $token
+     * @param string $token
      * @return string
      * @throws MalformedException
      * @throws TokenExpiredException
@@ -103,6 +103,31 @@ class JwtService
         ]);
 
         return $this->getTokenForClaim($newClaim);
+    }
+
+    /**
+     * invalidateToken method
+     *
+     * @param string $token
+     * @throws MalformedException
+     * @throws TokenExpiredException
+     * @throws UnRefreshableException
+     */
+    public function invalidateToken($token)
+    {
+        $claim = $this->getClaimFromToken($token);
+
+        $this->tokenManager->remove($claim);
+    }
+
+    /**
+     * wipeUserTokens method
+     *
+     * @param Authenticatable $user
+     */
+    public function wipeUserTokens(Authenticatable $user)
+    {
+        $this->tokenManager->removeAll($user->getAuthIdentifier());
     }
 
     /**

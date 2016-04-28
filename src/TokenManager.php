@@ -84,13 +84,13 @@ class TokenManager implements Contract\TokenManager
     /**
      * remove all claims associate to the subject from the white list
      *
-     * @param Claim $claim
+     * @param mixed $userId
      * @return int
      */
-    public function removeAll(Claim $claim)
+    public function removeAll($userId)
     {
         return \DB::table($this->tokenTable)
-            ->where($this->userForeignKey, $claim->sub)
+            ->where($this->userForeignKey, $userId)
             ->delete();
     }
 
