@@ -8,6 +8,7 @@ use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Support\Facades\Config;
 use WWON\JwtGuard\Contract\TokenManager;
 use WWON\JwtGuard\Exceptions\InaccessibleException;
+use WWON\JwtGuard\Exceptions\InvalidTokenException;
 use WWON\JwtGuard\Exceptions\MalformedException;
 use WWON\JwtGuard\Exceptions\TokenExpiredException;
 
@@ -65,13 +66,14 @@ class JwtService
      * @throws InaccessibleException
      * @throws MalformedException
      * @throws TokenExpiredException
+     * @throws InvalidTokenException
      */
     public function getUserIdFromToken($token)
     {
         $claim = $this->getClaimFromToken($token);
 
         if (!$this->tokenManager->check($claim)) {
-            return $claim->sub;
+            throw new InvalidTokenException;
         }
 
         return $claim->sub;
@@ -107,7 +109,7 @@ class JwtService
      */
     protected function getTokenForClaim(Claim $claim)
     {
-        $token = JWT::encode($claim->toArray(), $this->key);
+        $token = JWT::encode($claim->toArray(), $this->key, Config::get('jwt.algo'));
         $this->tokenManager->add($claim);
 
         return $token;
@@ -125,7 +127,9 @@ class JwtService
     protected function getClaimFromToken($token)
     {
         try {
-            $payload = JWT::decode($token, $this->key);
+            $payload = JWT::decode($token, $this->key, [
+                'HS256', 'HS384', 'HS512', 'RS256'
+            ]);
 
         } catch (ExpiredException $e) {
             throw new TokenExpiredException($e->getMessage(), $e->getCode(), $e);
