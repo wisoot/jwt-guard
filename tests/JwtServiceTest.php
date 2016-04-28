@@ -98,7 +98,7 @@ class JwtServiceTest extends PHPUnit_Framework_TestCase
             ->once()
             ->with(Mockery::on(function($claim) {
                 return $claim->sub == 5
-                && $claim->iss == 'http://www.test.com';
+                    && $claim->iss == 'http://www.test.com';
             }))
             ->andReturn(false);
 
@@ -108,12 +108,70 @@ class JwtServiceTest extends PHPUnit_Framework_TestCase
     }
 
     /**
+     * testRefreshToken method
+     */
+    public function testRefreshToken()
+    {
+        $now = Carbon::now()->timestamp;
+
+        $token = $this->getToken(true);
+
+        $this->tokenManager->shouldReceive('check')
+            ->once()
+            ->with(Mockery::on(function($claim) {
+                return $claim->sub == 5
+                    && $claim->iss == 'http://www.test.com';
+            }))
+            ->andReturn(true);
+
+        $this->tokenManager->shouldReceive('remove')
+            ->once()
+            ->with(Mockery::on(function($claim) {
+                return $claim->sub == 5
+                    && $claim->iss == 'http://www.test.com';
+            }));
+
+        $newToken = $this->jwtService->refreshToken($token);
+
+        $items = explode('.', $newToken);
+        $claimBody = json_decode(base64_decode($items[1]));
+
+        $this->assertEquals('http://www.test.com', $claimBody->iss);
+        $this->assertEquals($now, $claimBody->iat);
+        $this->assertEquals($now + 6000, $claimBody->exp);
+        $this->assertEquals($now + 6000, $claimBody->nat);
+    }
+
+    /**
+     * testRefreshUnRefreshableToken method
+     */
+    public function testRefreshUnRefreshableToken()
+    {
+        $now = Carbon::now()->timestamp;
+
+        $token = $this->getToken();
+
+        $this->tokenManager->shouldReceive('check')
+            ->once()
+            ->with(Mockery::on(function($claim) {
+                return $claim->sub == 5
+                && $claim->iss == 'http://www.test.com';
+            }))
+            ->andReturn(true);
+
+        $this->setExpectedException(\WWON\JwtGuard\Exceptions\UnRefreshableException::class);
+
+        $newToken = $this->jwtService->refreshToken($token);
+    }
+
+    /**
      * getToken method
      *
+     * @param bool $refreshable
      * @param int $ttl
      * @return string
      */
-    protected function getToken($ttl = 100)
+    protected function getToken($refreshable = false, $ttl = 100)
     {
         Config::shouldReceive('get')
             ->once()
@@ -147,7 +205,7 @@ class JwtServiceTest extends PHPUnit_Framework_TestCase
                 && $claim->iss == 'http://www.test.com';
             }));
 
-        $token = $this->jwtService->getTokenForUser(new User());
+        $token = $this->jwtService->getTokenForUser(new User(), $refreshable);
 
         return $token;
     }
