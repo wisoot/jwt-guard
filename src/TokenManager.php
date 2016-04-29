@@ -4,6 +4,7 @@ namespace WWON\JwtGuard;
 
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\DB;
 
 class TokenManager implements Contract\TokenManager
 {
@@ -39,7 +40,7 @@ class TokenManager implements Contract\TokenManager
             return;
         }
 
-        \DB::table($this->tokenTable)->insert([
+        DB::table($this->tokenTable)->insert([
             $this->userForeignKey => $claim->sub,
             'token' => $claim->jti,
             'created_at' => Carbon::now()->toDateTimeString(),
@@ -55,7 +56,7 @@ class TokenManager implements Contract\TokenManager
      */
     public function check(Claim $claim)
     {
-        $token = \DB::table($this->tokenTable)
+        $token = DB::table($this->tokenTable)
             ->where($this->userForeignKey, $claim->sub)
             ->where('token', $claim->jti)->first();
 
@@ -74,7 +75,7 @@ class TokenManager implements Contract\TokenManager
             return false;
         }
 
-        \DB::table($this->tokenTable)
+        DB::table($this->tokenTable)
             ->where($this->userForeignKey, $claim->sub)
             ->where('token', $claim->jti)->delete();
 
@@ -89,7 +90,7 @@ class TokenManager implements Contract\TokenManager
      */
     public function removeAll($userId)
     {
-        return \DB::table($this->tokenTable)
+        return DB::table($this->tokenTable)
             ->where($this->userForeignKey, $userId)
             ->delete();
     }
