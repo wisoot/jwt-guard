@@ -6,19 +6,17 @@ use Illuminate\Database\Migrations\Migration;
 class CreateUserTokensTable extends Migration
 {
     /**
-     * @var        string    $table    Table name.
+     * @var string $table - Table name.
      */
     protected $table;
 
     /**
-     * @var        string    $foreignKey    Column name for foreign keys.
+     * @var string $foreignKey - Column name for foreign keys.
      */
     protected $foreignKey;
 
     /**
      * Initialise the migration.
-     *
-     * @return    void
      */
     public function __construct()
     {
@@ -57,12 +55,12 @@ class CreateUserTokensTable extends Migration
     /**
      * Retrieve a setting from the package configuration.
      *
-     * @param    string    $key
-     * @param    mixed    $default
-     * @return    mixed
+     * @param string $key
+     * @param mixed $default
+     * @return mixed
      */
     private function config($key, $default = null)
     {
-        return config("jwt_guard.{$key}", $default);
+        return config("jwt.{$key}", $default);
     }
 }
