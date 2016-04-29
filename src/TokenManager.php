@@ -24,8 +24,8 @@ class TokenManager implements Contract\TokenManager
      */
     public function __construct()
     {
-        $this->tokenTable = Config::get('jwt_guard.token_table');
-        $this->userForeignKey = Config::get('jwt_guard.user_foreign_key');
+        $this->tokenTable = Config::get('jwt.token_table');
+        $this->userForeignKey = Config::get('jwt.user_foreign_key');
     }
 
     /**
@@ -36,7 +36,7 @@ class TokenManager implements Contract\TokenManager
      */
     public function add(Claim $claim)
     {
-        if ($this->check($claim->sub, $claim->jti)) {
+        if ($this->check($claim)) {
             return;
         }
 
@@ -71,7 +71,7 @@ class TokenManager implements Contract\TokenManager
      */
     public function remove(Claim $claim)
     {
-        if (!$this->check($claim->sub, $claim->jti)) {
+        if (!$this->check($claim)) {
             return false;
         }
 

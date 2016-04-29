@@ -99,7 +99,8 @@ class JwtService
         $this->tokenManager->remove($claim);
 
         $newClaim = new Claim([
-            'sub' => $claim->sub
+            'sub' => $claim->sub,
+            'refresh' => true
         ]);
 
         return $this->getTokenForClaim($newClaim);

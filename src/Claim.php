@@ -109,11 +109,11 @@ class Claim
 
         if (empty($this->exp)) {
             $ttl = $this->refresh ? Config::get('jwt.refresh_ttl') : Config::get('jwt.ttl');
-            $this->exp = $this->iat + ($ttl * 60); // turns minute into second
+            $this->exp = intval($this->iat + ($ttl * 60)); // turns minute into second
         }
 
         if (empty($this->nat)) {
-            $this->nat = $this->iat + (Config::get('jwt.ttl') * 60); // turns minute into second
+            $this->nat = intval($this->iat + (Config::get('jwt.ttl') * 60)); // turns minute into second
         }
 
         if (empty($this->jti)) {
