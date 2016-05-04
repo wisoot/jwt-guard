@@ -6,26 +6,25 @@ use Carbon\Carbon;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 
-class TokenManager implements Contract\TokenManager
+class ClaimManager implements Contract\ClaimManager
 {
 
     /**
      * @var string
      */
-    protected $tokenTable;
+    protected $tableName;
 
     /**
      * @var string
      */
-    protected $userForeignKey;
+    protected $foreignKey;
 
     /**
      * TokenManager constructor
      */
     public function __construct()
     {
-        $this->tokenTable = Config::get('jwt.token_table');
-        $this->userForeignKey = Config::get('jwt.user_foreign_key');
+        $this->tableName = Config::get('jwt.claim_table_name');
     }
 
     /**
@@ -40,9 +39,10 @@ class TokenManager implements Contract\TokenManager
             return;
         }
 
-        DB::table($this->tokenTable)->insert([
-            $this->userForeignKey => $claim->sub,
-            'token' => $claim->jti,
+        DB::table($this->tableName)->insert([
+            'subject' => $claim->sub,
+            'audience' => $claim->aud,
+            'jwt_id' => $claim->jti,
             'created_at' => Carbon::now()->toDateTimeString(),
             'updated_at' => Carbon::now()->toDateTimeString()
         ]);
@@ -56,9 +56,10 @@ class TokenManager implements Contract\TokenManager
      */
     public function check(Claim $claim)
     {
-        $token = DB::table($this->tokenTable)
-            ->where($this->userForeignKey, $claim->sub)
-            ->where('token', $claim->jti)->first();
+        $token = DB::table($this->tableName)
+            ->where('audience', $claim->aud)
+            ->where('subject', $claim->sub)
+            ->where('jwt_id', $claim->jti)->first();
 
         return !empty($token);
     }
@@ -75,9 +76,10 @@ class TokenManager implements Contract\TokenManager
             return false;
         }
 
-        DB::table($this->tokenTable)
-            ->where($this->userForeignKey, $claim->sub)
-            ->where('token', $claim->jti)->delete();
+        DB::table($this->tableName)
+            ->where('audience', $claim->aud)
+            ->where('subject', $claim->sub)
+            ->where('jwt_id', $claim->jti)->delete();
 
         return true;
     }
@@ -85,13 +87,14 @@ class TokenManager implements Contract\TokenManager
     /**
      * remove all claims associate to the subject from the white list
      *
-     * @param mixed $userId
+     * @param Claim $claim
      * @return int
      */
-    public function removeAll($userId)
+    public function removeAll(Claim $claim)
     {
-        return DB::table($this->tokenTable)
-            ->where($this->userForeignKey, $userId)
+        return DB::table($this->tableName)
+            ->where('audience', $claim->aud)
+            ->where('subject', $claim->sub)
             ->delete();
     }
 
