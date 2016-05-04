@@ -5,7 +5,7 @@ namespace WWON\JwtGuard;
 use Firebase\JWT\ExpiredException;
 use Firebase\JWT\JWT;
 use Illuminate\Support\Facades\Config;
-use WWON\JwtGuard\Contract\ClaimManager;
+use WWON\JwtGuard\Contract\ClaimManager as ClaimManagerContract;
 use WWON\JwtGuard\Exceptions\InaccessibleException;
 use WWON\JwtGuard\Exceptions\InvalidTokenException;
 use WWON\JwtGuard\Exceptions\MalformedException;
@@ -21,16 +21,16 @@ class JwtService
     private $key;
 
     /**
-     * @var ClaimManager
+     * @var ClaimManagerContract
      */
     protected $claimManager;
 
     /**
      * JwtService constructor
      *
-     * @param ClaimManager $claimManager
+     * @param ClaimManagerContract $claimManager
      */
-    public function __construct(ClaimManager $claimManager)
+    public function __construct(ClaimManagerContract $claimManager)
     {
         $this->key = Config::get('jwt.secret');
         $this->claimManager = $claimManager;

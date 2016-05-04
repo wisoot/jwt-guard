@@ -281,16 +281,7 @@ class JwtGuard implements Guard
             $this->jwtService->invalidateToken($token);
         } catch (Exception $e) { }
 
-        if (isset($this->events)) {
-            $this->events->fire(new Logout($this->user));
-        }
-
-        // Once we have fired the logout event we will clear the users out of memory
-        // so they are no longer available as the user is no longer considered as
-        // being signed into this application and should not be available here.
-        $this->user = null;
-        $this->token = null;
-        $this->loggedOut = true;
+        $this->logoutCurrentUser();
     }
 
     /**
@@ -311,6 +302,14 @@ class JwtGuard implements Guard
 
         } catch (Exception $e) { }
 
+        $this->logoutCurrentUser();
+    }
+
+    /**
+     * logoutCurrentUser method
+     */
+    protected function logoutCurrentUser()
+    {
         if (isset($this->events)) {
             $this->events->fire(new Logout($this->user));
         }
