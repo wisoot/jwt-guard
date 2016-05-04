@@ -140,7 +140,7 @@ class JwtGuard implements Guard
     {
         $this->fireAttemptEvent($credentials, $login);
 
-        $this->lastAttempted = $user = $this->provider->retrieveByCredentials($credentials);
+        $user = $this->provider->retrieveByCredentials($credentials);
 
         // If an implementation of UserInterface was returned, we'll ask the provider
         // to validate the user against the given credentials, and if they are in
