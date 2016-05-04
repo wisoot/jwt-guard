@@ -2,7 +2,8 @@
 
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Config;
-use WWON\JwtGuard\Contract\TokenManager;
+use WWON\JwtGuard\Claim;
+use WWON\JwtGuard\Contract\ClaimManager;
 use WWON\JwtGuard\JwtService;
 
 class JwtServiceTest extends PHPUnit_Framework_TestCase
@@ -11,7 +12,7 @@ class JwtServiceTest extends PHPUnit_Framework_TestCase
     /**
      * @var Mockery\MockInterface
      */
-    private $tokenManager;
+    private $claimManager;
     
     /**
      * @var JwtService
@@ -35,8 +36,8 @@ class JwtServiceTest extends PHPUnit_Framework_TestCase
             ->with('jwt.leeway')
             ->andReturn(0);
 
-        $this->tokenManager = Mockery::mock(TokenManager::class);
-        $this->jwtService = new JwtService($this->tokenManager);
+        $this->claimManager = Mockery::mock(ClaimManager::class);
+        $this->jwtService = new JwtService($this->claimManager);
     }
 
     /**
@@ -50,9 +51,9 @@ class JwtServiceTest extends PHPUnit_Framework_TestCase
     }
 
     /**
-     * testGetTokenForUser method
+     * testGetTokenForClaim method
      */
-    public function testGetTokenForUser()
+    public function testGetTokenForClaim()
     {
         $now = Carbon::now()->timestamp;
 
@@ -68,13 +69,13 @@ class JwtServiceTest extends PHPUnit_Framework_TestCase
     }
 
     /**
-     * testGetUserIdFromToken method
+     * testGetClaimFromToken method
      */
-    public function testGetUserIdFromToken()
+    public function testGetClaimFromToken()
     {
         $token = $this->getToken();
 
-        $this->tokenManager->shouldReceive('check')
+        $this->claimManager->shouldReceive('check')
             ->once()
             ->with(Mockery::on(function($claim) {
                 return $claim->sub == 5
@@ -82,9 +83,11 @@ class JwtServiceTest extends PHPUnit_Framework_TestCase
             }))
             ->andReturn(true);
 
-        $userId = $this->jwtService->getUserIdFromToken($token);
+        $claim = $this->jwtService->getClaimFromToken($token);
 
-        $this->assertEquals(5, $userId);
+        $this->assertEquals(5, $claim->sub);
+        $this->assertEquals('User', $claim->aud);
+        $this->assertEquals('http://www.test.com', $claim->iss);
     }
 
     /**
@@ -94,7 +97,7 @@ class JwtServiceTest extends PHPUnit_Framework_TestCase
     {
         $token = $this->getToken();
 
-        $this->tokenManager->shouldReceive('check')
+        $this->claimManager->shouldReceive('check')
             ->once()
             ->with(Mockery::on(function($claim) {
                 return $claim->sub == 5
@@ -104,7 +107,7 @@ class JwtServiceTest extends PHPUnit_Framework_TestCase
 
         $this->setExpectedException(\WWON\JwtGuard\Exceptions\InvalidTokenException::class);
 
-        $userId = $this->jwtService->getUserIdFromToken($token);
+        $claim = $this->jwtService->getClaimFromToken($token);
     }
 
     /**
@@ -116,7 +119,7 @@ class JwtServiceTest extends PHPUnit_Framework_TestCase
 
         $token = $this->getToken(true);
 
-        $this->tokenManager->shouldReceive('check')
+        $this->claimManager->shouldReceive('check')
             ->once()
             ->with(Mockery::on(function($claim) {
                 return $claim->sub == 5
@@ -124,7 +127,7 @@ class JwtServiceTest extends PHPUnit_Framework_TestCase
             }))
             ->andReturn(true);
 
-        $this->tokenManager->shouldReceive('remove')
+        $this->claimManager->shouldReceive('remove')
             ->once()
             ->with(Mockery::on(function($claim) {
                 return $claim->sub == 5
@@ -138,7 +141,7 @@ class JwtServiceTest extends PHPUnit_Framework_TestCase
 
         $this->assertEquals('http://www.test.com', $claimBody->iss);
         $this->assertEquals($now, $claimBody->iat);
-        $this->assertEquals($now + 6000, $claimBody->exp);
+        $this->assertEquals($now + 60000, $claimBody->exp);
         $this->assertEquals($now + 6000, $claimBody->nat);
     }
 
@@ -151,11 +154,11 @@ class JwtServiceTest extends PHPUnit_Framework_TestCase
 
         $token = $this->getToken();
 
-        $this->tokenManager->shouldReceive('check')
+        $this->claimManager->shouldReceive('check')
             ->once()
             ->with(Mockery::on(function($claim) {
                 return $claim->sub == 5
-                && $claim->iss == 'http://www.test.com';
+                    && $claim->iss == 'http://www.test.com';
             }))
             ->andReturn(true);
 
@@ -173,7 +176,7 @@ class JwtServiceTest extends PHPUnit_Framework_TestCase
 
         $token = $this->getToken();
 
-        $this->tokenManager->shouldReceive('check')
+        $this->claimManager->shouldReceive('check')
             ->once()
             ->with(Mockery::on(function($claim) {
                 return $claim->sub == 5
@@ -181,7 +184,7 @@ class JwtServiceTest extends PHPUnit_Framework_TestCase
             }))
             ->andReturn(true);
 
-        $this->tokenManager->shouldReceive('remove')
+        $this->claimManager->shouldReceive('remove')
             ->once()
             ->with(Mockery::on(function($claim) {
                 return $claim->sub == 5
@@ -196,11 +199,16 @@ class JwtServiceTest extends PHPUnit_Framework_TestCase
      */
     public function testWipeUserTokens()
     {
-        $this->tokenManager->shouldReceive('removeAll')
-            ->once()
-            ->with(5);
+        $claim = $this->getClaim();
 
-        $this->jwtService->wipeUserTokens(new User());
+        $this->claimManager->shouldReceive('removeAll')
+            ->once()
+            ->with(Mockery::on(function($claim) {
+                return $claim->sub == 5
+                    && $claim->iss == 'http://www.test.com';
+            }));
+
+        $this->jwtService->wipeUserTokens($claim);
     }
 
     /**
@@ -211,6 +219,29 @@ class JwtServiceTest extends PHPUnit_Framework_TestCase
      * @return string
      */
     protected function getToken($refreshable = false, $ttl = 100)
+    {
+        $claim = $this->getClaim($refreshable, $ttl);
+
+        $this->claimManager->shouldReceive('add')
+            ->once()
+            ->with(Mockery::on(function($claim) {
+                return $claim->sub == 5
+                    && $claim->iss == 'http://www.test.com';
+            }));
+
+        $token = $this->jwtService->getTokenForClaim($claim);
+
+        return $token;
+    }
+
+    /**
+     * getClaim method
+     *
+     * @param bool $refreshable
+     * @param int $ttl
+     * @return Claim
+     */
+    protected function getClaim($refreshable = false, $ttl = 100)
     {
         Config::shouldReceive('get')
             ->once()
@@ -237,16 +268,13 @@ class JwtServiceTest extends PHPUnit_Framework_TestCase
             ->with('jwt.algo')
             ->andReturn('HS256');
 
-        $this->tokenManager->shouldReceive('add')
-            ->once()
-            ->with(Mockery::on(function($claim) {
-                return $claim->sub == 5
-                && $claim->iss == 'http://www.test.com';
-            }));
+        $claim = new Claim([
+            'sub' => 5,
+            'aud' => 'User',
+            'refresh' => $refreshable
+        ]);
 
-        $token = $this->jwtService->getTokenForUser(new User(), $refreshable);
-
-        return $token;
+        return $claim;
     }
 
 }
