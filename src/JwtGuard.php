@@ -279,7 +279,9 @@ class JwtGuard implements Guard
 
         try {
             $this->jwtService->invalidateToken($token);
-        } catch (Exception $e) { }
+        } catch (Exception $e) {
+            // User has no valid token but fine with logout calling
+        }
 
         $this->logoutCurrentUser();
     }
@@ -296,11 +298,13 @@ class JwtGuard implements Guard
         }
 
         try {
-            $user = $this->jwtService->getClaimFromToken($token);
+            $claim = $this->jwtService->getClaimFromToken($token);
 
-            $this->jwtService->wipeUserTokens($user);
+            $this->jwtService->wipeUserTokens($claim);
 
-        } catch (Exception $e) { }
+        } catch (Exception $e) {
+            // User has no valid token but fine with logout calling
+        }
 
         $this->logoutCurrentUser();
     }

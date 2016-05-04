@@ -56,7 +56,7 @@ class JwtService
      * getEntityFromToken method
      *
      * @param string $token
-     * @return mixed
+     * @return Claim
      * @throws InaccessibleException
      * @throws MalformedException
      * @throws TokenExpiredException
