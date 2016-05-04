@@ -179,37 +179,15 @@ class Claim
     public function toArray()
     {
         $data = [];
+        $fields = [
+            'sub', 'iss', 'aud', 'iat',
+            'exp', 'nbf', 'nat', 'jti'
+        ];
 
-        if (!empty($this->sub)) {
-            $data['sub'] = $this->sub;
-        }
-
-        if (!empty($this->iss)) {
-            $data['iss'] = $this->iss;
-        }
-
-        if (!empty($this->aud)) {
-            $data['aud'] = $this->aud;
-        }
-
-        if (!empty($this->iat)) {
-            $data['iat'] = $this->iat;
-        }
-
-        if (!empty($this->exp)) {
-            $data['exp'] = $this->exp;
-        }
-
-        if (!empty($this->nbf)) {
-            $data['nbf'] = $this->nbf;
-        }
-
-        if (!empty($this->nat)) {
-            $data['nat'] = $this->nat;
-        }
-
-        if (!empty($this->jti)) {
-            $data['jti'] = $this->jti;
+        foreach ($fields as $field) {
+            if (!empty($this->{$field})) {
+                $data[$field] = $this->{$field};
+            }
         }
 
         if ($this->refresh) {
