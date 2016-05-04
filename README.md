@@ -37,7 +37,7 @@ WWON\JwtGuard\Providers\JwtGuardServiceProvider::class
 php artisan vendor:publish --provider="WWON\JwtGuard\Providers\JwtGuardServiceProvider"
 ```
 
-Then update jwt.php config to suit your project, run the migration, then you are good to go.
+Update `jwt.php` config to suit your project, run the migration, then you are good to go.
 
 ### Usage
 
