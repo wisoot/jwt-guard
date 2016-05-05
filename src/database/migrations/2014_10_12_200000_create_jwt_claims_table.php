@@ -30,8 +30,8 @@ class CreateJwtClaimsTable extends Migration
     {
         Schema::create($this->tableName, function (Blueprint $table) {
             $table->increments('id');
-            $table->string('subject')->unsigned();
-            $table->string('audience')->unsigned();
+            $table->string('subject')->index();
+            $table->string('audience')->index();
             $table->string('jwt_id')->index();
             $table->timestamps();
         });
