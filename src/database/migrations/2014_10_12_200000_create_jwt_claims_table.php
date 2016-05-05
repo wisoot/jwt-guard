@@ -5,7 +5,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Schema;
 
-class CreateUserTokensTable extends Migration
+class CreateJwtClaimsTable extends Migration
 {
 
     /**
