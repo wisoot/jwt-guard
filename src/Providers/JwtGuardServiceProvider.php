@@ -4,10 +4,10 @@ namespace WWON\JwtGuard\Providers;
 
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\ServiceProvider;
-use WWON\JwtGuard\Contract\TokenManager as TokenManagerContract;
+use WWON\JwtGuard\Contract\ClaimManager as ClaimManagerContract;
 use WWON\JwtGuard\JwtGuard;
 use WWON\JwtGuard\JwtService;
-use WWON\JwtGuard\TokenManager;
+use WWON\JwtGuard\ClaimManager;
 
 class JwtGuardServiceProvider extends ServiceProvider
 {
@@ -65,7 +65,7 @@ class JwtGuardServiceProvider extends ServiceProvider
      */
     public function register()
     {
-        $this->app->bind(TokenManagerContract::class, TokenManager::class);
+        $this->app->bind(ClaimManagerContract::class, ClaimManager::class);
 
         $this->app->rebinding('request', function ($app, $request) {
             $request->setUserResolver(function ($guard = null) {

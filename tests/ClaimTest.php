@@ -35,7 +35,10 @@ class ClaimTest extends PHPUnit_Framework_TestCase
             ->with('jwt.leeway')
             ->andReturn(0);
 
-        $claim = new Claim();
+        $claim = new Claim([
+            'sub' => 1,
+            'aud' => 'User'
+        ]);
 
         $this->assertEquals('http://www.test.com', $claim->iss);
         $this->assertEquals($now, $claim->iat, '', 2);
@@ -58,6 +61,8 @@ class ClaimTest extends PHPUnit_Framework_TestCase
             ->andReturn(0);
 
         $claim = new Claim([
+            'sub' => 1,
+            'aud' => 'User',
             'iss' => 'http://www.test.com',
             'iat' => $now,
             'exp' => $now + 6000,
@@ -66,9 +71,9 @@ class ClaimTest extends PHPUnit_Framework_TestCase
         ]);
 
         $this->assertEquals('http://www.test.com', $claim->iss);
-        $this->assertEquals($now, $claim->iat);
-        $this->assertEquals($now + 6000, $claim->exp);
-        $this->assertEquals($now + 6000, $claim->nat);
+        $this->assertEquals($now, $claim->iat, '', 2);
+        $this->assertEquals($now + 6000, $claim->exp, '', 2);
+        $this->assertEquals($now + 6000, $claim->nat, '', 2);
         $this->assertEquals('asdjhasiudhasud', $claim->jti);
         $this->assertEquals(0, $claim->leeway);
         $this->assertEquals(false, $claim->refresh);
@@ -92,6 +97,8 @@ class ClaimTest extends PHPUnit_Framework_TestCase
             ->andReturn(0);
 
         $claim = new Claim([
+            'sub' => 1,
+            'aud' => 'User',
             'iss' => 'http://www.test.com',
             'iat' => $now,
             'nat' => $now + 6000,
@@ -100,9 +107,9 @@ class ClaimTest extends PHPUnit_Framework_TestCase
         ]);
 
         $this->assertEquals('http://www.test.com', $claim->iss);
-        $this->assertEquals($now, $claim->iat);
-        $this->assertEquals($now + 60000, $claim->exp);
-        $this->assertEquals($now + 6000, $claim->nat);
+        $this->assertEquals($now, $claim->iat, '', 2);
+        $this->assertEquals($now + 60000, $claim->exp, '', 2);
+        $this->assertEquals($now + 6000, $claim->nat, '', 2);
         $this->assertEquals('asdjhasiudhasud', $claim->jti);
         $this->assertEquals(0, $claim->leeway);
         $this->assertEquals(true, $claim->refresh);
@@ -123,6 +130,8 @@ class ClaimTest extends PHPUnit_Framework_TestCase
         $this->setExpectedException(\WWON\JwtGuard\Exceptions\MalformedException::class);
 
         $claim = new Claim([
+            'sub' => 1,
+            'aud' => 'User',
             'iss' => 'http://www.test.com',
             'iat' => $now,
             'exp' => $now - 6000,
@@ -146,6 +155,8 @@ class ClaimTest extends PHPUnit_Framework_TestCase
         $this->setExpectedException(\WWON\JwtGuard\Exceptions\InaccessibleException::class);
 
         $claim = new Claim([
+            'sub' => 1,
+            'aud' => 'User',
             'iss' => 'http://www.test.com',
             'iat' => $now - 6000,
             'exp' => $now + 6000,
@@ -171,10 +182,35 @@ class ClaimTest extends PHPUnit_Framework_TestCase
         $this->setExpectedException(\WWON\JwtGuard\Exceptions\TokenExpiredException::class);
 
         $claim = new Claim([
+            'sub' => 1,
+            'aud' => 'User',
             'iss' => 'http://www.test.com',
             'iat' => $now - 6000,
             'exp' => $now - 1000,
             'nat' => $now - 1000,
+            'jti' => 'asdjhasiudhasud'
+        ]);
+    }
+
+    /**
+     * testCreateClaimWithNoAudienceAndSubject method
+     */
+    public function testCreateClaimWithNoAudienceAndSubject()
+    {
+        $now = Carbon::now()->timestamp;
+
+        Config::shouldReceive('get')
+            ->once()
+            ->with('jwt.leeway')
+            ->andReturn(0);
+
+        $this->setExpectedException(\WWON\JwtGuard\Exceptions\MalformedException::class);
+
+        $claim = new Claim([
+            'iss' => 'http://www.test.com',
+            'iat' => $now,
+            'exp' => $now + 6000,
+            'nat' => $now + 6000,
             'jti' => 'asdjhasiudhasud'
         ]);
     }

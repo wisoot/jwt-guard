@@ -28,6 +28,11 @@ class JwtGuard implements Guard
     protected $token;
 
     /**
+     * @var bool
+     */
+    protected $isTokenRefreshable = false;
+
+    /**
      * @var JwtService
      */
     protected $jwtService;
@@ -79,7 +84,14 @@ class JwtGuard implements Guard
             return $this->user = null;
         }
 
-        $this->user = $this->getUserByToken($token);
+        try {
+            $this->user = $this->getUserByToken($token);
+        } catch (InaccessibleException $e) {
+            $this->isTokenRefreshable = true;
+            $this->user = null;
+        } catch (Exception $e) {
+            $this->user = null;
+        }
 
         return $this->user;
     }
@@ -96,9 +108,14 @@ class JwtGuard implements Guard
      */
     protected function getUserByToken($token)
     {
-        $userId = $this->jwtService->getUserIdFromToken($token);
+        $claim = $this->jwtService->getClaimFromToken($token);
+        $user = $this->provider->retrieveById($claim->sub);
 
-        return $this->provider->retrieveById($userId);
+        if (!empty($user) && get_class($user) !== $claim->aud) {
+            throw new InvalidTokenException;
+        }
+
+        return $user;
     }
 
     /**
@@ -123,7 +140,7 @@ class JwtGuard implements Guard
     {
         $this->fireAttemptEvent($credentials, $login);
 
-        $this->lastAttempted = $user = $this->provider->retrieveByCredentials($credentials);
+        $user = $this->provider->retrieveByCredentials($credentials);
 
         // If an implementation of UserInterface was returned, we'll ask the provider
         // to validate the user against the given credentials, and if they are in
@@ -188,7 +205,13 @@ class JwtGuard implements Guard
      */
     public function login(AuthenticatableContract $user)
     {
-        $token = $this->jwtService->getTokenForUser($user, Config::get('jwt.refreshable'));
+        $claim = new Claim([
+            'sub' => $user->getAuthIdentifier(),
+            'aud' => get_class($user),
+            'refresh' => Config::get('jwt.refreshable')
+        ]);
+
+        $token = $this->jwtService->getTokenForClaim($claim);
 
         // If we have an event dispatcher instance set we will fire an event so that
         // any listeners will hook into the authentication events and run actions
@@ -207,7 +230,11 @@ class JwtGuard implements Guard
      */
     protected function refreshTokenForUser($token)
     {
-        $newToken = $this->jwtService->refreshToken($token);
+        try {
+            $newToken = $this->jwtService->refreshToken($token);
+        } catch (Exception $e) {
+            $newToken = null;
+        }
 
         return $newToken;
     }
@@ -252,18 +279,11 @@ class JwtGuard implements Guard
 
         try {
             $this->jwtService->invalidateToken($token);
-        } catch (Exception $e) { }
-
-        if (isset($this->events)) {
-            $this->events->fire(new Logout($this->user));
+        } catch (Exception $e) {
+            // User has no valid token but fine with logout calling
         }
 
-        // Once we have fired the logout event we will clear the users out of memory
-        // so they are no longer available as the user is no longer considered as
-        // being signed into this application and should not be available here.
-        $this->user = null;
-        $this->token = null;
-        $this->loggedOut = true;
+        $this->logoutCurrentUser();
     }
 
     /**
@@ -278,12 +298,22 @@ class JwtGuard implements Guard
         }
 
         try {
-            $user = $this->getUserByToken($token);
+            $claim = $this->jwtService->getClaimFromToken($token);
 
-            $this->jwtService->wipeUserTokens($user);
+            $this->jwtService->wipeUserTokens($claim);
 
-        } catch (Exception $e) { }
+        } catch (Exception $e) {
+            // User has no valid token but fine with logout calling
+        }
 
+        $this->logoutCurrentUser();
+    }
+
+    /**
+     * logoutCurrentUser method
+     */
+    protected function logoutCurrentUser()
+    {
         if (isset($this->events)) {
             $this->events->fire(new Logout($this->user));
         }
@@ -333,6 +363,14 @@ class JwtGuard implements Guard
     }
 
     /**
+     * isTokenRefreshable method
+     */
+    public function isTokenRefreshable()
+    {
+        return $this->isTokenRefreshable;
+    }
+
+    /**
      * getBearerToken method
      *
      * @return string|null
@@ -344,6 +382,8 @@ class JwtGuard implements Guard
         if (starts_with(strtolower($header), 'bearer ')) {
             return mb_substr($header, 7, null, 'UTF-8');
         }
+
+        return null;
     }
 
 }

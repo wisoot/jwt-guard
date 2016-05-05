@@ -5,16 +5,12 @@ namespace WWON\JwtGuard\Contract;
 use WWON\JwtGuard\Claim;
 
 /**
- * Interface TokenManager
+ * Interface ClaimManager
  *
- * $userId is default to user ID of the users table, however,
- * this can be changed according to the need of the program.
- * Ultimately it is the identifier of user which can be
- * set by overriding function getKeyName on user entity
- *
- * @package App\Services\Auth
+ * This manager will manage and keep track of claim to in the persisting database
+ * and will use that to validate claim
  */
-interface TokenManager
+interface ClaimManager
 {
 
     /**
@@ -44,9 +40,9 @@ interface TokenManager
     /**
      * remove all claims associate to the subject from the white list
      *
-     * @param mixed $userId
+     * @param Claim $claim
      * @return int
      */
-    public function removeAll($userId);
+    public function removeAll(Claim $claim);
 
 }

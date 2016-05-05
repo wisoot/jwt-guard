@@ -74,25 +74,13 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | JTI Token table
+    | JWT Claim table
     |--------------------------------------------------------------------------
     |
     | This will be the name of the table that is used for storing white list
-    | JTI tokens for users
+    | JWT tokens for users
     |
     */
-    'token_table' => 'user_tokens',
-
-    /*
-    |--------------------------------------------------------------------------
-    | JWT Token foreign key name
-    |--------------------------------------------------------------------------
-    |
-    | user_id by default, however, if wish to keep table in the same naming
-    | convention as it is used in the other part of the main system,
-    | change it here
-    |
-    */
-    'user_foreign_key' => 'user_id',
+    'claim_table_name' => 'jwt_claims',
 
 ];
