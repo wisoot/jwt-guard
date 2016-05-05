@@ -98,6 +98,31 @@ class Claim
      */
     public function __construct(array $data = [])
     {
+        $data = $this->getDataMergedWithDefault($data);
+
+        foreach ($data as $key => $value) {
+            $attribute = camel_case($key);
+
+            if (property_exists($this, $attribute)) {
+                $this->{$attribute} = $value;
+            }
+        }
+
+        $this->generateJti();
+
+        $this->leeway = Config::get('jwt.leeway');
+
+        $this->validate();
+    }
+
+    /**
+     * getDataMergedWithDefault method
+     *
+     * @param array $data
+     * @return array
+     */
+    protected function getDataMergedWithDefault(array $data = [])
+    {
         $this->now = Carbon::now()->timestamp;
         $ttl = $this->refresh || !empty($data['refresh'])
             ? Config::get('jwt.refresh_ttl')
@@ -110,23 +135,17 @@ class Claim
             'nat' => intval($this->now + (Config::get('jwt.ttl') * 60))
         ], $data);
 
-        foreach ($data as $key => $value) {
-            $attribute = camel_case($key);
+        return $data;
+    }
 
-            if (property_exists($this, $attribute)) {
-                $this->{$attribute} = $value;
-            }
-        }
-
+    /**
+     * generateJti method
+     */
+    protected function generateJti()
+    {
         if (empty($this->jti)) {
             $this->jti = md5("{$this->sub}.{$this->iat}." . rand(1000, 1999));
         }
-
-        if (empty($this->leeway)) {
-            $this->leeway = Config::get('jwt.leeway');
-        }
-
-        $this->validate();
     }
 
     /**

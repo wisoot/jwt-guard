@@ -9,6 +9,7 @@ use Illuminate\Auth\GuardHelpers;
 use Illuminate\Contracts\Auth\Authenticatable as AuthenticatableContract;
 use Illuminate\Contracts\Auth\Guard;
 use Illuminate\Contracts\Auth\UserProvider;
+use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Config;
 use WWON\JwtGuard\Exceptions\Exception;
@@ -41,6 +42,13 @@ class JwtGuard implements Guard
      * @var Request
      */
     protected $request;
+
+    /**
+     * The event dispatcher instance.
+     *
+     * @var Dispatcher
+     */
+    protected $events;
 
     /**
      * Indicates if the logout method has been called.
@@ -141,6 +149,10 @@ class JwtGuard implements Guard
         $this->fireAttemptEvent($credentials, $login);
 
         $user = $this->provider->retrieveByCredentials($credentials);
+
+        if (empty($user)) {
+            return false;
+        }
 
         // If an implementation of UserInterface was returned, we'll ask the provider
         // to validate the user against the given credentials, and if they are in
@@ -261,7 +273,13 @@ class JwtGuard implements Guard
      */
     public function loginUsingId($id)
     {
-        $this->login($user = $this->provider->retrieveById($id));
+        $user = $this->provider->retrieveById($id);
+
+        if (empty($user)) {
+            return null;
+        }
+
+        $this->login($user);
 
         return $user;
     }
@@ -340,6 +358,27 @@ class JwtGuard implements Guard
         $this->token = $this->refreshTokenForUser($token);
 
         return $this->token;
+    }
+
+    /**
+     * Get the event dispatcher instance.
+     *
+     * @return Dispatcher
+     */
+    public function getDispatcher()
+    {
+        return $this->events;
+    }
+
+    /**
+     * Set the event dispatcher instance.
+     *
+     * @param Dispatcher $events
+     * @return void
+     */
+    public function setDispatcher(Dispatcher $events)
+    {
+        $this->events = $events;
     }
 
     /**
