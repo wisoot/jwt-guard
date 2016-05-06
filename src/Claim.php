@@ -144,7 +144,7 @@ class Claim
     protected function generateJti()
     {
         if (empty($this->jti)) {
-            $this->jti = md5("{$this->sub}.{$this->iat}." . rand(1000, 1999));
+            $this->jti = md5("{$this->aud}.{$this->sub}.{$this->iat}." . rand(1000, 1999));
         }
     }
 
