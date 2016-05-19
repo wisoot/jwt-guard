@@ -34,6 +34,11 @@ class JwtGuard implements Guard
     protected $isTokenRefreshable = false;
 
     /**
+     * @var bool
+     */
+    protected $isTokenPresent = false;
+
+    /**
      * @var JwtService
      */
     protected $jwtService;
@@ -91,6 +96,8 @@ class JwtGuard implements Guard
         if (!$token = $this->getBearerToken()) {
             return $this->user = null;
         }
+
+        $this->isTokenPresent = true;
 
         try {
             $this->user = $this->getUserByToken($token);
@@ -403,10 +410,22 @@ class JwtGuard implements Guard
 
     /**
      * isTokenRefreshable method
+     *
+     * @return boolean
      */
     public function isTokenRefreshable()
     {
         return $this->isTokenRefreshable;
+    }
+
+    /**
+     * isTokenPresent method
+     *
+     * @return boolean
+     */
+    public function isTokenPresent()
+    {
+        return $this->isTokenPresent;
     }
 
     /**
