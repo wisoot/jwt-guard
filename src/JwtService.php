@@ -143,6 +143,8 @@ class JwtService
 
         } catch (ExpiredException $e) {
             throw new TokenExpiredException($e->getMessage(), $e->getCode(), $e);
+        } catch (\Exception $e) {
+            throw new InvalidTokenException;
         }
 
         $claim = new Claim((array) $payload);
