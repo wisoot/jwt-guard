@@ -93,7 +93,7 @@ class JwtGuard implements Guard
             return $this->user;
         }
 
-        if (!$token = $this->getBearerToken()) {
+        if (!$token = $this->getRequestToken()) {
             return $this->user = null;
         }
 
@@ -298,7 +298,7 @@ class JwtGuard implements Guard
      */
     public function logout()
     {
-        if (!$token = $this->getBearerToken()) {
+        if (!$token = $this->getRequestToken()) {
             return;
         }
 
@@ -318,7 +318,7 @@ class JwtGuard implements Guard
      */
     public function logoutAll()
     {
-        if (!$token = $this->getBearerToken()) {
+        if (!$token = $this->getRequestToken()) {
             return;
         }
 
@@ -358,7 +358,7 @@ class JwtGuard implements Guard
      */
     public function refreshToken()
     {
-        if (!$token = $this->getBearerToken()) {
+        if (!$token = $this->getRequestToken()) {
             return null;
         }
 
@@ -428,6 +428,22 @@ class JwtGuard implements Guard
         return $this->isTokenPresent;
     }
 
+
+    /**
+     * getRequestToken method
+     *
+     * @return string|null
+     */
+    protected function getRequestToken()
+    {
+        $token = $this->getBearerToken();
+        if (!$token) {
+            return $this->getCookieToken();
+        }
+
+        return $token;
+    }
+
     /**
      * getBearerToken method
      *
@@ -442,6 +458,16 @@ class JwtGuard implements Guard
         }
 
         return null;
+    }
+
+    /**
+     * getCookieToken method
+     *
+     * @return string|null
+     */
+    protected function getCookieToken()
+    {
+        return $this->request->cookie('token');
     }
 
 }
